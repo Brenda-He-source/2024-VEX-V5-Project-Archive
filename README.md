@@ -22,3 +22,5 @@ The code in `main.cpp` is organized into four distinct subsystems:
 ### 3. Technical Skills
 * **Language:** C++ / VEXcode Pro
 * **Concepts:** Finite State Machines (FSM), PID Control Logic, Computer Vision Basics.
+---
+*Note: This repository contains the core application logic (`main.cpp`) for portfolio demonstration purposes. Standard VEX V5 header files and configuration libraries are omitted for clarity.*
