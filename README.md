@@ -10,7 +10,7 @@ The code in `main.cpp` aggregates the daily learning modules into a single, cohe
 #### Day 1: Human-Machine Interface (UI)
 * **Goal:** Master the VEX V5 Screen API and coordinate systems.
 * **Implementation:**
-    * Designed a custom startup screen featuring my team name **"Avengers"** and school **"GX No.1 High School"**.
+    * Designed a custom startup screen featuring my team name and school name.
     * Programmed a dynamic **face animation** with blinking eyes using `drawCircle` and loops.
 
 #### Day 2: Sensor-Based Navigation
@@ -44,5 +44,4 @@ The code in `main.cpp` aggregates the daily learning modules into a single, cohe
 * **Hardware:** VEX V5 Brain, Smart Motors, Vision Sensor, Sonar, Light Sensor.
 * **Key Concepts:** Computational Thinking, Finite State Machines, Sensor Fusion.
 
----
-*Note: This repository is a consolidated portfolio of the original source files (`day1.h` through `day5.h`).*
+*Note: This repository contains the core application logic (`main.cpp`) for portfolio demonstration purposes. Standard VEX V5 header files and configuration libraries are omitted for clarity.*
