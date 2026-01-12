@@ -1,7 +1,7 @@
 /*----------------------------------------------------------------------------*/
 /* */
 /* Module:       main.cpp                                                  */
-/* Author:       Ziyuan He                                        */
+/* Author:       Brenda                                        */
 /* Created:      Aug 2024                                                  */
 /* Description:  VEX V5 Autonomous Control System                          */
 /* Context:      Carnegie Mellon Robotics Academy - VEX V5 Summer Intensive       */
@@ -214,4 +214,5 @@ int main() {
   
   // Engage AI Vision System (Default)
   task_Vision_AI();
+
 }
