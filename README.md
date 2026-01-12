@@ -1,7 +1,7 @@
 # VEX V5 Robotics Control System 🤖
 
 ### 1. Project Overview
-This repository archives the C++ control logic I developed during the **Carnegie Mellon Robotics Academy (Summer 2024)**. The project focuses on **computational thinking**, **sensor fusion**, and **automated decision-making** using the VEX V5 hardware ecosystem.
+This repository archives the C++ control logic I developed during the **Carnegie Mellon Robotics Academy Summer Intensive in 2024**. The project focuses on **computational thinking**, **sensor fusion**, and **automated decision-making** using the VEX V5 hardware ecosystem.
 
 Instead of simple linear execution, this project is structured into functional **Modules**, demonstrating a systematic approach to robotics programming.
 
