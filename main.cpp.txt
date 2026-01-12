@@ -46,7 +46,7 @@ void Day1_Screen_UI() {
   Brain.Screen.setCursor(3, 6);
   Brain.Screen.print("Brenda");
   Brain.Screen.setCursor(4, 3);
-  Brain.Screen.print("GX No.1 High School");
+  Brain.Screen.print("Brenda's School");
   Brain.Screen.newLine();
   Brain.Screen.print("Avengers"); 
 
@@ -261,3 +261,4 @@ int main() {
   // 2. Default to Final Project (Day 5 Vision)
   Day5_Vision_Tracking();
 }
+
