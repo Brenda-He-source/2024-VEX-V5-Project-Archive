@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------------*/
 /* */
-/* Module:       main.cpp                                                  */
-/* Author:       Brenda                                        */
-/* Created:      Aug 2024                                                  */
-/* Description:  VEX V5 Autonomous Control System                          */
-/* Context:      Carnegie Mellon Robotics Academy - VEX V5 Summer Intensive       */
+/* Project:      VEX V5 Learning Portfolio                                 */
+/* Author:       Brenda                                      */
+/* Created:      Summer 2024                                               */
+/* Description:  Integration of Day 1-5 learning tasks from CMA Robotics   */
+/* Academy. Demonstrates progression from basic UI to AI.    */
 /* */
 /*----------------------------------------------------------------------------*/
 
@@ -12,207 +12,252 @@
 
 using namespace vex;
 
-// ---- Hardware Configuration (Standard V5 Clawbot) ----
-motor LeftMotor = motor(PORT1, ratio18_1, false);
-motor RightMotor = motor(PORT10, ratio18_1, true);
-drivetrain Drivetrain = drivetrain(LeftMotor, RightMotor, 319.19, 295, 40, mm, 1);
+// ---- Hardware Configuration ----
+motor LeftDrive = motor(PORT1, ratio18_1, false);
+motor RightDrive = motor(PORT10, ratio18_1, true);
+drivetrain Drivetrain = drivetrain(LeftDrive, RightDrive, 319.19, 295, 40, mm, 1);
 
-motor ArmMotor = motor(PORT8, ratio18_1, false);  // Lift Arm
-motor ClawMotor = motor(PORT3, ratio18_1, false); // Claw Grabber
+motor ArmMotor = motor(PORT8, ratio18_1, false);
+motor ClawMotor = motor(PORT3, ratio18_1, false);
 
-distance FrontSensor = distance(PORT5); // Ultrasonic/Distance Sensor
-vision VisionSensor = vision(PORT20);   // Vision Sensor for AI Tracking
+controller Controller1 = controller(primary);
+distance FrontSonar = distance(PORT5); 
+line LightSensor = line(Brain.ThreeWirePort.A); 
+vision VisionSensor = vision(PORT20);
 
-// Vision Signature: Configured for a yellow object (Cone)
-vision::signature TARGET_OBJ = vision::signature(1, 0, 0, 0, 0, 0, 0, 2.5, 0);
+// Vision Signature: BLUE_OBJECT (Calibrated for Day 5 task)
+vision::signature BLUE_OBJECT = vision::signature(1, -3463, -2653, -3058, 8359, 10231, 9295, 2.5, 0);
 
-// ---- System Initialization ----
 void sys_init(void) {
   vexcodeInit();
   ArmMotor.setVelocity(50, percent);
   ClawMotor.setVelocity(50, percent);
-  ClawMotor.setMaxTorque(100, percent); 
+  ClawMotor.setStopping(hold);
 }
 
 /* ========================================================================== */
-/* MODULE 1: Human-Machine Interface (HMI)                                    */
-/* Function: Startup animation and status display on the V5 Brain.            */
+/* DAY 1: Human-Machine Interface (UI)                                        */
+/* Focus: Screen coordinate systems and drawing APIs                          */
 /* ========================================================================== */
-void task_HMI_Display() {
+void Day1_Screen_UI() {
   Brain.Screen.clearScreen();
   
-  // 1. Project Information
+  // 1. Identity Information
   Brain.Screen.setCursor(3, 6);
-  Brain.Screen.print("Brenda's V5 Robot"); 
+  Brain.Screen.print("Brenda");
   Brain.Screen.setCursor(4, 3);
-  Brain.Screen.print("Summer Session 2024"); // Generic time reference
-  
-  // 2. Draw UI Background
+  Brain.Screen.print("GX No.1 High School");
+  Brain.Screen.newLine();
+  Brain.Screen.print("Avengers"); 
+
+  // 2. Geometric Drawing Practice
   Brain.Screen.setPenColor(cyan);
-  Brain.Screen.drawRectangle(10, 10, 460, 220); 
+  Brain.Screen.setFillColor(blue);
+  Brain.Screen.drawRectangle(10, 10, 200, 70);
   
-  // 3. Status Icon (Smiley Face)
-  Brain.Screen.setPenColor(yellow);
+  Brain.Screen.setPenColor(green);
+  Brain.Screen.setFillColor(red);
+  Brain.Screen.drawRectangle(15, 15, 500, 90);
+  
+  Brain.Screen.setPenColor(purple);
+  Brain.Screen.setFillColor(orange);
+  Brain.Screen.drawCircle(50, 90, 70);
+
+  // 3. Animated Face Drawing
+  Brain.Screen.setPenColor(transparent);
   Brain.Screen.setFillColor(yellow);
-  Brain.Screen.drawCircle(240, 120, 50);
-  
-  // Animation: System Booting Effect
+  Brain.Screen.drawCircle(240, 100, 90); // Head
+
+  // Eye Animation Loop
   for(int i=0; i<3; i++) {
-    // Eyes Open
+    // Open Eyes
+    Brain.Screen.setFillColor(white);
+    Brain.Screen.drawCircle(210, 80, 15);
     Brain.Screen.setFillColor(black);
-    Brain.Screen.drawCircle(220, 110, 5); 
-    Brain.Screen.drawCircle(260, 110, 5); 
-    wait(0.5, seconds);
+    Brain.Screen.drawCircle(210, 80, 10);
     
-    // Eyes Closed (Blink)
+    Brain.Screen.setFillColor(white);
+    Brain.Screen.drawCircle(270, 80, 15);
+    Brain.Screen.setFillColor(black);
+    Brain.Screen.drawCircle(270, 80, 10);
+    
+    wait(1, seconds);
+    
+    // Blink (Close Eyes)
     Brain.Screen.setFillColor(yellow);
-    Brain.Screen.drawCircle(220, 110, 5); 
-    Brain.Screen.drawCircle(260, 110, 5);
+    Brain.Screen.drawCircle(210, 80, 16); 
+    Brain.Screen.drawCircle(270, 80, 16);
     wait(0.2, seconds);
   }
-  
-  // Final State: Ready
-  Brain.Screen.setFillColor(black);
-  Brain.Screen.drawCircle(220, 110, 5);
-  Brain.Screen.drawCircle(260, 110, 5);
-  
-  Brain.Screen.setPenWidth(3);
-  Brain.Screen.setPenColor(black);
-  Brain.Screen.drawLine(230, 140, 250, 140); // Smile
 }
 
 /* ========================================================================== */
-/* MODULE 2: Autonomous Navigation                                            */
-/* Function: Basic path planning and obstacle avoidance logic.                */
+/* DAY 2: Sensor-Based Navigation                                             */
+/* Focus: Rangefinders (Sonar) and Timeout Logic                              */
 /* ========================================================================== */
-void task_Obstacle_Avoidance() {
-  Drivetrain.setDriveVelocity(30, percent);
-  Brain.Screen.printAt(10, 200, "Module: Navigation Active");
+void Day2_Auto_Navigation() {
+  Brain.Screen.printAt(10, 200, "Day 2: Sonar Obstacle Avoidance");
   
-  // Test Loop: Navigate a square path
-  for (int i = 0; i < 4; i++) { 
+  // Logic: Move forward until Sonar detects object < 200mm
+  wait(50, msec);
+  
+  // While distance is safe (> 200mm) or invalid (-1)
+  while(FrontSonar.distance(mm) > 200 || FrontSonar.distance(mm) == -1) {
+    Drivetrain.drive(forward);
+    wait(20, msec);
+  }
+  
+  // Obstacle detected
+  Drivetrain.stop();
+  Brain.Screen.printAt(10, 220, "Obstacle Detected: %f mm", FrontSonar.distance(mm));
+  
+  // Avoidance maneuver (Back up and turn)
+  Drivetrain.driveFor(reverse, 500, mm);
+  Drivetrain.turnFor(left, 90, degrees);
+}
+
+/* ========================================================================== */
+/* DAY 3: Tele-operated Control System                                        */
+/* Focus: User Input, Timers, and Mechanism Control                           */
+/* ========================================================================== */
+void Day3_Driver_Control() {
+  Brain.Screen.clearScreen();
+  Brain.Screen.printAt(10, 100, "Day 3: Driver Control Mode");
+  
+  Brain.Timer.reset();
+
+  while(true) {
+    // 1. Timer Display
+    int mytime = Brain.Timer.value() / 1000;
+    Controller1.Screen.setCursor(1, 1);
+    Controller1.Screen.print("Time: %d s", mytime);
+
+    // 2. Split Arcade Control Logic
+    // Axis 3 (Left Y) for Forward/Back, Axis 1 (Right X) for Turn
+    int fwd = Controller1.Axis3.position();
+    int turn = Controller1.Axis1.position();
     
-    // Perception: Check Front Sensor
-    if (FrontSensor.objectDistance(mm) < 150) {
-      Brain.Screen.printAt(10, 220, "Alert: Obstacle Detected!");
-      
-      // Reaction: Avoidance Maneuver
-      Drivetrain.driveFor(reverse, 100, mm);
-      Drivetrain.turnFor(right, 90, degrees);
-      Drivetrain.driveFor(forward, 300, mm);
-      Drivetrain.turnFor(left, 90, degrees);
+    LeftDrive.setVelocity(fwd + turn, percent);
+    RightDrive.setVelocity(fwd - turn, percent);
+    
+    if(abs(fwd) > 5 || abs(turn) > 5) {
+      LeftDrive.spin(forward);
+      RightDrive.spin(forward);
     } else {
-      // Path Clear
-      Drivetrain.driveFor(forward, 500, mm);
+      LeftDrive.stop();
+      RightDrive.stop();
     }
     
-    Drivetrain.turnFor(right, 90, degrees);
-    wait(0.5, seconds);
+    // 3. Arm & Claw Control (Button Mapping)
+    // Claw Logic
+    if(Controller1.ButtonR1.pressing()) { 
+      ClawMotor.spin(forward); 
+    } else if(Controller1.ButtonR2.pressing()) { 
+      ClawMotor.spin(reverse); 
+    } else { 
+      ClawMotor.stop(hold); 
+    }
+
+    // Arm Logic
+    if(Controller1.ButtonL1.pressing()) { 
+      ArmMotor.spin(forward); 
+    } else if(Controller1.ButtonL2.pressing()) { 
+      ArmMotor.spin(reverse); 
+    } else { 
+      ArmMotor.stop(hold); 
+    }
+
+    wait(20, msec);
   }
 }
 
 /* ========================================================================== */
-/* MODULE 3: Object Manipulation                                              */
-/* Function: Sequence control for Arm and Claw mechanisms.                    */
+/* DAY 4: Environmental Sensing                                               */
+/* Focus: Light Sensor thresholds and Line Tracking                           */
 /* ========================================================================== */
-void task_Arm_Control() {
-  Brain.Screen.printAt(10, 200, "Module: Manipulation Active");
-
-  // Step 1: Initialization
-  ClawMotor.spinFor(reverse, 60, degrees); 
-  ArmMotor.spinToPosition(0, degrees);     
+void Day4_Line_Tracking() {
+  Brain.Screen.printAt(10, 200, "Day 4: Light Sensor Active");
   
-  // Step 2: Approach
-  Drivetrain.driveFor(forward, 200, mm);
+  int threshold = 50; // Calibrated grey/white threshold
   
-  // Step 3: Interaction
-  ClawMotor.spinFor(forward, 60, degrees); // Grab
-  wait(0.5, seconds);
+  // Follow line until end
+  while(LightSensor.value(pct) > threshold) {
+    LeftDrive.spin(forward, 30, percent);
+    RightDrive.spin(forward, 30, percent);
+    wait(20, msec);
+  }
   
-  // Step 4: Transport
-  ArmMotor.spinFor(forward, 300, degrees); // Lift
-  Drivetrain.driveFor(forward, 100, mm);
-  
-  // Step 5: Placement
-  ArmMotor.spinFor(reverse, 50, degrees);  
-  ClawMotor.spinFor(reverse, 60, degrees); // Release
-  
-  // Step 6: Reset
-  Drivetrain.driveFor(reverse, 300, mm);
+  LeftDrive.stop();
+  RightDrive.stop();
 }
 
 /* ========================================================================== */
-/* MODULE 4: Computer Vision (AI Perception)                                  */
-/* Function: Color-based object tracking (Simulating AI Logic).               */
+/* DAY 5: Computer Vision (AI Foundation)                                     */
+/* Focus: Object Recognition, Coordinate Extraction, and Closed-Loop Control  */
 /* ========================================================================== */
-void task_Vision_AI() {
+void Day5_Vision_Tracking() {
   Brain.Screen.clearScreen();
-  Brain.Screen.printAt(10, 100, "System: Vision Tracking AI");
+  Brain.Screen.printAt(10, 100, "Day 5: AI Vision (Blue Target)");
   
-  while (true) {
-    // Data Acquisition: Take snapshot
-    VisionSensor.takeSnapshot(TARGET_OBJ);
+  while(true) {
+    // 1. Data Acquisition
+    VisionSensor.takeSnapshot(BLUE_OBJECT);
     
-    // Logic Processing
-    if (VisionSensor.objectCount > 0) {
+    // 2. Data Processing & Visualization
+    if(VisionSensor.largestObject.exists) {
+      Brain.Screen.clearScreen();
+      Brain.Screen.setCursor(1, 1);
+      Brain.Screen.print("Target Detected!");
+      Brain.Screen.newLine();
+      Brain.Screen.print("X: %d  Y: %d", VisionSensor.largestObject.originX, VisionSensor.largestObject.originY);
+      Brain.Screen.newLine();
+      Brain.Screen.print("W: %d  H: %d", VisionSensor.largestObject.width, VisionSensor.largestObject.height);
       
-      int objectX = VisionSensor.largestObject.centerX;
-      int objectWidth = VisionSensor.largestObject.width;
+      // 3. Logic Control (Centering the Robot)
+      int center = 158; 
+      int deadband = 20; // Tolerance
       
-      // Control Algorithm: Center the robot on target
-      // Screen Center ~ 158px
-      
-      if (objectX < 140) {
-        // Correction: Left
-        LeftMotor.spin(reverse, 10, percent);
-        RightMotor.spin(forward, 10, percent);
-        Brain.Screen.printAt(10, 140, "Status: Correcting Left ");
+      if(VisionSensor.largestObject.originX < (center - deadband)) {
+        // Target on Left -> Turn Left
+        LeftDrive.spin(reverse, 15, percent);
+        RightDrive.spin(forward, 15, percent);
       } 
-      else if (objectX > 180) {
-        // Correction: Right
-        LeftMotor.spin(forward, 10, percent);
-        RightMotor.spin(reverse, 10, percent);
-        Brain.Screen.printAt(10, 140, "Status: Correcting Right");
+      else if(VisionSensor.largestObject.originX > (center + deadband)) {
+        // Target on Right -> Turn Right
+        LeftDrive.spin(forward, 15, percent);
+        RightDrive.spin(reverse, 15, percent);
       } 
       else {
-        // State: Target Centered
-        if (objectWidth < 200) {
-          // Action: Pursue Target
-          LeftMotor.spin(forward, 20, percent);
-          RightMotor.spin(forward, 20, percent);
-          Brain.Screen.printAt(10, 140, "Status: Tracking Target ");
-        } else {
-          // Action: Hold Position
-          Drivetrain.stop();
-          Brain.Screen.printAt(10, 140, "Status: Target Locked   ");
-        }
+        // Target Centered -> Move Forward
+        LeftDrive.spin(forward, 20, percent);
+        RightDrive.spin(forward, 20, percent);
       }
     } 
     else {
-      // State: Idle / Search
-      Drivetrain.turn(right, 15, velocityUnits::pct);
-      Brain.Screen.printAt(10, 140, "Status: Searching...    ");
+      Brain.Screen.printAt(10, 140, "Scanning Environment...");
+      LeftDrive.stop();
+      RightDrive.stop();
     }
     
-    wait(20, msec); 
+    wait(100, msec);
   }
 }
 
-// ---- Main Loop ----
 int main() {
   sys_init();
   
-  // Execute HMI startup sequence
-  task_HMI_Display();       
+  // --- Execution Sequence ---
+  
+  // 1. Start with Day 1 UI
+  Day1_Screen_UI();
   wait(2, seconds);
   
-  // NOTE: Uncomment specific modules to run tests
+  // NOTE: Uncomment specific days below to verify logic independently
   
-  // task_Obstacle_Avoidance(); 
+  // Day2_Auto_Navigation();
+  // Day3_Driver_Control();
+  // Day4_Line_Tracking();
   
-  // task_Arm_Control();    
-  
-  // Engage AI Vision System (Default)
-  task_Vision_AI();
-
+  // 2. Default to Final Project (Day 5 Vision)
+  Day5_Vision_Tracking();
 }
